@@ -1,0 +1,383 @@
+<html>
+
+<head>
+	<script src="libs/three.js"></script>
+	<script src="libs/keyboard.js"></script>
+	<script src="libs/OrbitControls.js"></script>
+</head>
+
+<body>
+	<script>
+		var renderer;
+		var scene;
+		var camera;
+		var spotLight;
+		var controls;
+
+		function init()
+		{
+			scene = new THREE.Scene();
+
+			camera = new THREE.PerspectiveCamera(
+			// frustum vertical view         aspect ratio							 frustum near plane     frustum far plane
+				45,                          window.innerWidth / window.innerHeight, 0.1,                   1000 );
+
+			renderer = new THREE.WebGLRenderer();
+			//						color     alpha
+			renderer.setClearColor( 0x000000, 1.0 );
+			renderer.setSize( window.innerWidth - 20, window.innerHeight - 20 );
+			renderer.shadowMap.enabled = true;
+
+			camera.position.x = 0;
+			camera.position.y = -25;
+			camera.position.z = 15;
+			camera.lookAt( scene.position );
+
+			loadSounds();
+			createPlayBottom();
+			createBoundingWalls();
+			createPaddles();
+			createBall();
+			addSpotLight();
+			createOrbitControls();
+			createScoreboard();
+
+			// Output to the stream
+			document.body.appendChild( renderer.domElement );
+
+			// Call render
+			render();
+		}
+
+		function render()
+		{
+			moveBallAndMaintainPaddles();
+
+			// Request animation frame
+			requestAnimationFrame( render );
+
+			// Call render()
+			renderer.render( scene, camera );
+		}
+
+		function createOrbitControls()
+		{
+			controls = new THREE.OrbitControls(camera, renderer.domElement);
+			controls.center = new THREE.Vector3(scene.position.x, scene.position.y, scene.position.z);
+			controls.enableZoom = false;
+			controls.enableKeys = false;
+			controls.minPolarAngle = Math.PI / 2;
+			controls.maxPolarAngle = Math.PI;
+			controls.minAzimuthAngle = - Math.PI / 4;
+			controls.maxAzimuthAngle = Math.PI / 4;
+		}
+
+		function addSpotLight()
+		{
+			spotLight = new THREE.SpotLight( 0xffffff );
+	    spotLight.position.set( 10, 20, 20 );
+	    spotLight.shadow.camera.near = 20;
+	    spotLight.shadow.camera.far = 50;
+	    spotLight.castShadow = true;
+	    scene.add(spotLight);
+		}
+
+		function createPlayBottom()
+		{
+			var planeGeometry = new THREE.PlaneGeometry( 10, 20, 10, 10 );
+			var planeMaterial = new THREE.MeshLambertMaterial({color:0x4BD121});
+			var plane = new THREE.Mesh( planeGeometry, planeMaterial );
+			scene.add(plane);
+
+			var outGeometry = new THREE.PlaneGeometry( .25, 20, 10, 10 );
+			var outMaterial = new THREE.MeshLambertMaterial({color:0xFFFFFF});
+			var out = new THREE.Mesh( outGeometry, outMaterial );
+			scene.add(out);
+
+			var acrossGeometry = new THREE.PlaneGeometry( 10, .25, 10, 10 );
+			var acrossMaterial = new THREE.MeshLambertMaterial({color:0xFFFFFF});
+			var across = new THREE.Mesh( acrossGeometry, acrossMaterial );
+			scene.add(across);
+		}
+
+		function createBoundingWalls()
+		{
+			var leftWall = new THREE.BoxGeometry( 1, 18, 2.5 );
+			var wallMaterial = new THREE.MeshBasicMaterial({color:'yellow'});
+			var wall1 = new THREE.Mesh( leftWall, wallMaterial );
+			wall1.position.x = -4.5;
+			wall1.position.z = 1.25;
+			scene.add( wall1 );
+
+			var edges1 = new THREE.EdgesHelper( wall1, 0x5555555 );
+			wall1.add( edges1 );
+
+			var rightWall = new THREE.BoxGeometry( 1, 18, 2.5 );
+			var wall2 = new THREE.Mesh( rightWall, wallMaterial );
+			wall2.position.x = 4.5;
+			wall2.position.z = 1.25;
+			scene.add( wall2 );
+
+			var edges2 = new THREE.EdgesHelper( wall2, 0x555555 );
+			wall2.add( edges2 );
+		}
+
+		var paddle1, paddle2;
+		function createPaddles()
+		{
+			var opponentPaddle = new THREE.BoxGeometry( 2, .5, 1 );
+			var paddleMaterial1 = new THREE.MeshBasicMaterial({color:'red'});
+			paddle1 = new THREE.Mesh( opponentPaddle, paddleMaterial1 );
+			paddle1.position.y = 9;
+			paddle1.position.z = .5;
+			scene.add( paddle1 );
+
+			var edges1 = new THREE.EdgesHelper( paddle1, 0x000000 );
+			paddle1.add( edges1 );
+
+			var playerPaddle = new THREE.BoxGeometry( 2, .5, 1 );
+			var paddleMaterial2 = new THREE.MeshBasicMaterial({color:'blue'});
+			paddle2 = new THREE.Mesh( playerPaddle, paddleMaterial2 );
+			paddle2.position.y = -9;
+			paddle2.position.z = .5;
+			scene.add( paddle2 );
+
+			var edges2 = new THREE.EdgesHelper( paddle2, 0x000000 );
+			paddle2.add( edges2 );
+		}
+
+		var ball;
+		function createBall()
+		{
+			var ballSphere = new THREE.SphereGeometry( .5, 10 );
+			var ballMaterial = new THREE.MeshBasicMaterial({color:'white'});
+			ball = new THREE.Mesh( ballSphere, ballMaterial );
+			ball.position.z = .5;
+			scene.add( ball );
+
+			var edges = new THREE.EdgesHelper( ball, 0x000000 );
+			ball.add( edges );
+		}
+
+		var points = [];
+		var opponentPoints = [];
+		function createScoreboard()
+		{
+			var ballSphere = new THREE.SphereGeometry( .25, 10 );
+			var ballMaterial = new THREE.MeshBasicMaterial({color:0xFFFFFF});
+
+			for (x = 0; x < 10; x++) {
+				p = new THREE.Mesh( ballSphere, ballMaterial );
+				p.position.x = -4.5;
+				p.position.y = -7.25 + (x * (8/5));
+				p.position.z = 3;
+				points[x] = p;
+				scene.add( p );
+			}
+
+			for (x = 0; x < 10; x++) {
+				p = new THREE.Mesh( ballSphere, ballMaterial );
+				p.position.x = 4.5;
+				p.position.y = -7.25 + (x * (8/5));
+				p.position.z = 3;
+				opponentPoints[x] = p;
+				scene.add( p );
+			}
+		}
+
+		var xDir = .02;
+		var yDir = .04;
+		var speed = 1;
+		function moveBallAndMaintainPaddles()
+		{
+			if (game) {
+				return;
+			}
+
+			var paddle1Move = 0;
+			var paddle2Move = 0;
+
+			ball.position.x += (xDir - (.2 * (controls.getAzimuthalAngle() / (Math.PI / 2)))) * speed;
+			ball.position.y += yDir * speed;
+
+			if ( Key.isDown( Key.LEFTARROW ) ) {
+				paddle2.position.x -= 0.02 * speed;
+				paddle2Move = -1;
+			} else if ( Key.isDown( Key.RIGHTARROW ) ) {
+				paddle2.position.x += 0.02 * speed;
+				paddle2Move = 1;
+			}
+
+			if ( ball.position.x < paddle1.position.x ) {
+				paddle1.position.x -= 0.02 * speed;
+				paddle1Move = -1;
+			} else if ( ball.position.x > paddle1.position.x ) {
+				paddle1.position.x += 0.02 * speed;
+				paddle1Move = 1;
+			}
+
+			if ( paddle1.position.x < -3 ) {
+				paddle1.position.x = -3;
+				paddle1Move = 0;
+			} else if (paddle1.position.x > 3 ) {
+				paddle1.position.x = 3;
+				paddle1Move = 0;
+			}
+			if ( paddle2.position.x < -3 ) {
+				paddle2.position.x = -3 ;
+				paddle2Move = 0;
+			} else if (paddle2.position.x > 3 ) {
+				paddle2.position.x = 3;
+				paddle2Move = 0;
+			}
+
+			if ( ball.position.x < -3.5 )	{
+				xDir = -xDir;
+				ball.position.x = -3.5;
+				three.play();
+			}	else if ( ball.position.x > 3.5 )	{
+				xDir = -xDir;
+				ball.position.x = 3.5;
+				four.play();
+			}
+
+			if ( ball.position.y < -8.5 && yDir < 0 )	{
+				yDir = -yDir;
+
+				if ( Math.abs( paddle2.position.x - ball.position.x ) <= 1.5 )	{
+					if ( paddle2Move < 0 ) {
+						xDir = xDir - 0.02;
+					}
+					if ( paddle2Move > 0 ) {
+						xDir = xDir + 0.02;
+					}
+					one.play();
+				}	else {
+					point(false);
+				}
+			} else if ( ball.position.y > 8.5 && yDir > 0 ) {
+				yDir = -yDir;
+
+				if ( Math.abs( paddle1.position.x - ball.position.x ) <= 1.5 )	{
+					if ( paddle1Move < 0)	{
+						xDir = xDir - 0.02;
+					}
+					if ( paddle1Move > 0) {
+						xDir = xDir + 0.02;
+					}
+					two.play();
+				}	else {
+					point(true);
+				}
+			}
+		}
+
+		var score = 0;
+		var opponentScore = 0;
+		var game = 0;
+		function point(win)
+		{
+			var applause = Math.floor((Math.random()) * 4 + 1);
+			switch (applause) {
+				case 1:
+					score1.play();
+					break;
+				case 2:
+					score2.play();
+					break;
+				case 3:
+					score3.play();
+					break;
+				case 4:
+					score4.play();
+					break;
+			}
+
+			resetBall();
+
+			if ( win ) {
+				var pointMaterial = new THREE.MeshBasicMaterial({color:'blue'});
+				points[score].material = pointMaterial;
+				score++;
+			} else {
+				var pointMaterial = new THREE.MeshBasicMaterial({color:'red'});
+				opponentPoints[opponentScore].material = pointMaterial;
+				opponentScore++;
+			}
+
+			if (score % 2 == 0 && score != 0) {
+				speed++;
+			}
+			if (score == 10 || opponentScore == 10) {
+				xDir = 0;
+				yDir = 0;
+				game = 1;
+				var freq = 250;
+				var interval = setInterval("flash()", freq);
+			}
+		}
+
+		var blink = 0;
+		function flash()
+		{
+			blink++;
+			if ( score == 10 ) {
+				var pointMaterial;
+				if ( blink % 2 == 0 ) {
+					pointMaterial = new THREE.MeshBasicMaterial({color:'white'});
+				} else {
+					pointMaterial = new THREE.MeshBasicMaterial({color:'blue'});
+				}
+				for (x = 0; x < 10; x++) {
+					points[x].material = pointMaterial;
+				}
+			} else if ( opponentScore == 10 ) {
+				var pointMaterial;
+				if ( blink % 2 == 0 ) {
+					pointMaterial = new THREE.MeshBasicMaterial({color:'white'});
+				} else {
+					pointMaterial = new THREE.MeshBasicMaterial({color:'red'});
+				}
+				for (x = 0; x < 10; x++) {
+					opponentPoints[x].material = pointMaterial;
+				}
+			}
+		}
+
+		function resetBall()
+		{
+			ball.position.x = ball.position.y = 0;
+			var direction = Math.floor((Math.random()) * 2 + 1);
+			switch (direction) {
+				case 1:
+					xDir = .02;
+					break;
+				case 2:
+					xDir = -.02;
+					break;
+			}
+		}
+
+		var derezzed, one, two, three, four, five, score1, score2, score3, score4;
+		function loadSounds()
+		{
+			derezzed = new Audio("sounds/Derezzed.mp3");
+			one = new Audio("sounds/1.mp3");
+			two = new Audio("sounds/2.mp3");
+			three = new Audio("sounds/3.mp3");
+			four = new Audio("sounds/4.mp3");
+			five = new Audio("sounds/5.mp3");
+			score1 = new Audio("sounds/applause4.mp3");
+			score2 = new Audio("sounds/applause6.mp3");
+			score3 = new Audio("sounds/applause7.mp3");
+			score4 = new Audio("sounds/applause8.mp3");
+
+			derezzed.loop = true;
+			derezzed.play();
+		}
+
+		window.onload = init;
+	</script>
+</body>
+
+</html>

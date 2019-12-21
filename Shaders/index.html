@@ -1,0 +1,83 @@
+<html>
+
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+		<script src="libs/three.js"></script>
+		<script src="libs/keyboard.js"></script>
+	</head>
+
+	<body>
+		<script type="text/x-glsl" id="vertex">
+			varying vec2 uVu;
+			void main()
+			{
+				uVu = uv;
+
+				gl_Position = projectionMatrix *
+					modelViewMatrix *
+					vec4(position,1.0);
+			}
+		</script>
+
+		<script type="text/x-glsl" id="orbFragment">
+			varying vec2 uVu;
+			uniform float sr, sg, sb;
+			uniform sampler2D tDiffuse;
+			uniform float time;
+
+			vec4 getNoise(in vec2 uv)
+			{
+				float noiseScale = 0.01;
+
+				vec2 uv0 = uv / (103.0 * noiseScale) + vec2(time / 17.0, time / 29.0);
+				vec2 uv1 = uv / (107.0 * noiseScale) - vec2(time / -19.0, time / 31.0);
+		    vec2 uv2 = uv / (vec2(8907.0, 9803.0) * noiseScale) + vec2(time / 101.0, time /   97.0);
+		    vec2 uv3 = uv / (vec2(1091.0, 1027.0) * noiseScale) - vec2(time / 109.0, time / -113.0);
+
+				vec4 noise = texture2D(tDiffuse, uv0) / 4.0 +
+				texture2D(tDiffuse, uv1) / 4.0 +
+				texture2D(tDiffuse, uv2) / 4.0 +
+				texture2D(tDiffuse, uv3) / 4.0;
+
+		    return noise;
+			}
+
+			void main()
+			{
+				float red = sr * uVu.y;
+				float green = sg * uVu.y;
+				float blue = sb * uVu.y;
+				vec4 color = vec4(red, green, blue, 1.0);
+				vec4 texture = getNoise( vec2(abs(uVu.x - 0.5), uVu.y) );
+				gl_FragColor = vec4(((texture.x + color.x) / 2.0), ((texture.y + color.y) / 2.0), ((texture.z + color.z) / 2.0), 1.0);
+			}
+		</script>
+
+		<script type="text/x-glsl" id="pedestalFragment">
+			varying vec2 uVu;
+			uniform float sr, sg, sb;
+
+			void main()
+			{
+				vec2 st = uVu;
+
+				float red = sr;
+				float green = sg;
+				float blue = sb;
+				vec4 color = vec4(red, green, blue, 1.0);
+				vec4 black = vec4(0.0, 0.0, 0.0, 1.0);
+
+				float d = sqrt(pow(uVu.x - 0.5, 2.0) + pow(uVu.y - 0.5, 2.0));
+				if (d <= .25) {
+					gl_FragColor = color;
+				} else {
+					gl_FragColor = black;
+				}
+			}
+		</script>
+
+		<script src="js/shaders.js"></script>
+	</body>
+
+</html>

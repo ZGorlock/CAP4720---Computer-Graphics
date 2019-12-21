@@ -1,0 +1,59 @@
+<html>
+
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	
+	<link rel="stylesheet"
+		type="text/css"
+		href="css/style.css" />
+	
+	<script src="libs/three.js"></script>
+	<script src="libs/keyboard.js"></script>
+	<script src="libs/OBJLoader.js"></script>
+	<script src="fonts/helvetiker_regular.typeface.js"></script>
+</head>
+
+<body>
+	<div id="myModal" class="modal">
+	  <div class="modal-content">
+		<span class="close">&times;</span>
+		<center>
+			<hr>
+			<b>IMPASSE</b>
+			<br><br>
+			Created By: Zachary Gill
+			<hr>
+			<p>
+				Impasse is a game played on a checkers set that was invented by Mark Steere.<br>
+				For detailed instructions see: <a href="http://www.marksteeregames.com/Impasse_rules.pdf">Detailed Rules</a>
+			</p>
+			<hr>
+			<p>
+				There are three basic moves:
+				<ul>
+					<li>Slides:        Moving one of your single pieces away from you</li>
+					<li>Double Slides: Moving one of your double pieces towards you</li>
+					<li>Transposes:    Moving a piece from a double to a single that is closer to you and adjacent to the double</li>
+				</ul>
+			</p>
+			<br>
+			<p>
+				If you move a single to the far side of the board, you must crown it with one of your other singles, turning it into a double.<br>
+				If you a move a double to the near side of the board, you bear-off the crown and remove the piece from play.<br>
+				If you have no basic moves available you are at an Impasse, and you may remove any single piece from play or turn any double into a single.
+			</p>
+			<br>
+			<p>
+				The first person to remove all their pieces from play wins.<br>
+				Good luck!
+			</p>
+			<hr>
+		</center>
+	  </div>
+	</div>
+	
+	<script src="js/loadPieces.js"></script>
+	<script src="js/impasse.js"></script>
+</body>
+
+</html>
